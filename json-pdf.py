@@ -200,6 +200,11 @@ class PersonalChatJsonPdf(JsonPdf):
 
         os.rename(pdf_output_path, new_name)
 
+        os.system('clear')
+        print(f"{self.name}, {self.time_period_name}.pdf is ready!")
+        input('\nPress any key to close...')
+        os.system('clear')
+
 
 class ChooseJson:
     def __init__(self, path='.'):
@@ -254,8 +259,8 @@ class ChooseJson:
             return PersonalChatJsonPdf(self.menu[int(option)])
 
 
-
 if __name__ == '__main__':
+    os.system('clear')
     argument = sys.argv
 
     if len(argument) > 1:
