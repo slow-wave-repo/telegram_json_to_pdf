@@ -1,2 +1,3 @@
 reportlab==4.0.4
+emoji==2.12.1
 
