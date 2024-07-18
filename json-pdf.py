@@ -71,6 +71,16 @@ class JsonPdf:
                                            fontSize=11,
                                            textColor='grey')
 
+    media_types = {
+        'voice_message': '(VOICE MESSAGE)',
+        'video_message': '(VIDEO MESSAGE)',
+        'video': '(VIDEO)',
+        'photo': '(PHOTO)',
+        'sticker': '(STICKER)',
+        'other': '(OTHER)',
+        'call': '(CALL)'
+    }
+
     def style(self, message: str, type: str) -> Paragraph:
         if type == 'text':
             return Paragraph(message, self.text_style)
@@ -125,12 +135,16 @@ class JsonPdf:
         file = Path(file_path)
         return file.suffix == '.json'
 
+    def check_if_pdf_exists(self, path):
+        return not os.path.exists(path)
+
 
 class PersonalChatJsonPdf(JsonPdf):
     def __init__(self, input_file: str):
         with open(input_file, 'r', encoding='utf-8') as opened_file:
             self.data = json.load(opened_file)
 
+        self.input_file = input_file
         self.name = self.data['name']
         self.earliest_date, self.latest_date = self.get_time_borders(self.data)
         self.time_period_inside = f'{self.format_date_inside(self.earliest_date)} — {self.format_date_inside(self.latest_date)}'
@@ -143,71 +157,71 @@ class PersonalChatJsonPdf(JsonPdf):
             story.append(self.style(message, 'self_message'))
 
     def make_pdf(self):
-        previous_date = None
+        if self.check_if_pdf_exists(f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'):
+            previous_date = None
 
-        pdf_output_path = "result.pdf"
-        doc = SimpleDocTemplate(pdf_output_path, pagesize=A4)
-        story = []
+            path = Path(f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/')
+            path.mkdir(parents=True, exist_ok=True)
 
-        story.append(self.style(f"{self.data['name']}", 'title'))
-        story.append(Spacer(1, 40))
-        story.append(self.style(f"{self.time_period_inside}", 'period'))
+            pdf_output_path = f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'
+            doc = SimpleDocTemplate(pdf_output_path, pagesize=A4)
+            story = []
 
-        media_types = {
-            'voice_message': '(VOICE MESSAGE)',
-            'video_message': '(VIDEO MESSAGE)',
-            'video': '(VIDEO)',
-            'photo': '(PHOTO)',
-            'sticker': '(STICKER)',
-            'other': '(OTHER)',
-            'call': '(CALL)'
-        }
+            story.append(self.style(f"{self.data['name']}", 'title'))
+            story.append(Spacer(1, 40))
+            story.append(self.style(f"{self.time_period_inside}", 'period'))
 
-        for message in self.data['messages']:
-            if self.format_date_inside(message['date']) != previous_date:
-                story.append(Spacer(1, 48))
+            for message in self.data['messages']:
+                if self.format_date_inside(message['date']) != previous_date:
+                    story.append(Spacer(1, 48))
 
-                story.append(
-                    HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
-                               spaceAfter=0.5 * cm, hAlign='CENTER'))
+                    story.append(
+                        HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
+                                   spaceAfter=0.5 * cm, hAlign='CENTER'))
 
-                story.append(self.style(f"— {self.format_date_inside(message['date'])} —", 'date_style'))
+                    story.append(self.style(f"— {self.format_date_inside(message['date'])} —", 'date_style'))
 
-                story.append(
-                    HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
-                               spaceAfter=0.5 * cm, hAlign='CENTER'))
+                    story.append(
+                        HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
+                                   spaceAfter=0.5 * cm, hAlign='CENTER'))
 
-                story.append(Spacer(1, 30))
+                    story.append(Spacer(1, 30))
 
-                previous_date = self.format_date_inside(message['date'])
+                    previous_date = self.format_date_inside(message['date'])
 
-            if message['type'] == 'service':
-                self.choose_role_tag(media_types['call'], message['actor'], story)
-            elif isinstance(message['text'], list):
-                self.choose_role_tag(media_types['call'], message['from'], story)
-            else:
-                self.choose_role_tag(self.check_message(message['text']), message['from'], story)
-                story.append(Spacer(1, 20))
-            if 'media_type' in message:
-                try:
-                    self.choose_role_tag(media_types[message['media_type']], message['from'], story)
-                except KeyError:
-                    self.choose_role_tag(media_types['other'], message['from'], story)
+                if message['type'] == 'service':
+                    self.choose_role_tag(self.media_types['call'], message['actor'], story)
+                elif isinstance(message['text'], list):
+                    self.choose_role_tag(self.media_types['call'], message['from'], story)
+                else:
+                    self.choose_role_tag(self.check_message(message['text']), message['from'], story)
+                    story.append(Spacer(1, 20))
+                if 'media_type' in message:
+                    try:
+                        self.choose_role_tag(self.media_types[message['media_type']], message['from'], story)
+                    except KeyError:
+                        self.choose_role_tag(self.media_types['other'], message['from'], story)
 
-        doc.build(story)
+            doc.build(story)
 
-        new_name = f"{self.name}, {self.time_period_name}.pdf"
+            new_name = f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'
 
-        os.rename(pdf_output_path, new_name)
+            os.rename(pdf_output_path, new_name)
+            print(os.path.basename(self.input_file))
+            shutil.move(self.input_file, f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.input_file[2:]}')
 
-        os.system('clear')
-        print(f"{self.name}, {self.time_period_name}.pdf is ready!")
+            os.system('clear')
+            print(f"{self.name}, {self.time_period_name}.pdf is ready!")
+        else:
+            os.system('clear')
+            print('\nThis PDF-file already exists!')
+
         input('\nPress any key to close...')
         os.system('clear')
 
 
 class ChooseJson:
-    def __init__(self, path='.'):
+    def __init__(self, path=f'/home/{os.getlogin()}/'):
         self.directory_path = path
 
         if os.path.isdir(self.directory_path):
@@ -230,8 +244,7 @@ class ChooseJson:
                 print(f'{item} -- {self.menu[item]} \n')
 
             self.fill_terminal_width()
-            print()
-            print('0 -- Exit')
+            print('\n0 -- Exit')
 
             process_file = self.choose()
         else:
@@ -252,6 +265,7 @@ class ChooseJson:
             return self.choose()
 
         if option == 0:
+            os.system('clear')
             quit()
         elif option not in list(self.menu):
             return self.choose()
