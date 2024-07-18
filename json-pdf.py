@@ -9,6 +9,7 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
+import argparse
 
 import emoji
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
@@ -140,7 +141,7 @@ class JsonPdf:
 
 
 class PersonalChatJsonPdf(JsonPdf):
-    def __init__(self, input_file: str):
+    def __init__(self, input_file: str, path_save=f'/home/{os.getlogin()}/Desktop'):
         with open(input_file, 'r', encoding='utf-8') as opened_file:
             self.data = json.load(opened_file)
 
@@ -149,6 +150,7 @@ class PersonalChatJsonPdf(JsonPdf):
         self.earliest_date, self.latest_date = self.get_time_borders(self.data)
         self.time_period_inside = f'{self.format_date_inside(self.earliest_date)} — {self.format_date_inside(self.latest_date)}'
         self.time_period_name = f'{self.format_date_name(self.earliest_date)} — {self.format_date_name(self.latest_date)}'
+        self.path_save = path_save
 
     def choose_role_tag(self, message, name: str, story: list):
         if name == self.data['name']:
@@ -157,13 +159,13 @@ class PersonalChatJsonPdf(JsonPdf):
             story.append(self.style(message, 'self_message'))
 
     def make_pdf(self):
-        if self.check_if_pdf_exists(f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'):
+        if self.check_if_pdf_exists(f'{self.path_save}/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'):
             previous_date = None
 
-            path = Path(f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/')
+            path = Path(f'{self.path_save}/JSONtoPDF/{self.name}/')
             path.mkdir(parents=True, exist_ok=True)
 
-            pdf_output_path = f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'
+            pdf_output_path = f'{self.path_save}/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'
             doc = SimpleDocTemplate(pdf_output_path, pagesize=A4)
             story = []
 
@@ -204,14 +206,21 @@ class PersonalChatJsonPdf(JsonPdf):
 
             doc.build(story)
 
-            new_name = f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'
+            new_name = f'{self.path_save}/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'
 
             os.rename(pdf_output_path, new_name)
-            shutil.move(self.input_file, f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.json')
+            shutil.move(self.input_file, f'{self.path_save}/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.json')
             os.system(f'xdg-open "{new_name}"')
 
             os.system('clear')
             print(f"{self.name}, {self.time_period_name}.pdf is ready!")
+
+            if self.path_save == f'/home/{os.getlogin()}/Desktop':
+                print(f'\nSaved to Desktop.')
+            elif self.path_save == f'.':
+                print(f'\nSave to {os.getcwd()}')
+            else:
+                print(f'\nSave to {self.path_save}')
         else:
             os.system('clear')
             print('\nThis PDF-file already exists!')
@@ -221,8 +230,9 @@ class PersonalChatJsonPdf(JsonPdf):
 
 
 class ChooseJson:
-    def __init__(self, path=f'/home/{os.getlogin()}/'):
+    def __init__(self, path=f'/home/{os.getlogin()}/', path_save=f'/home/{os.getlogin()}/Desktop'):
         self.directory_path = path
+        self.path_save = path_save
 
         if os.path.isdir(self.directory_path):
             self.menu = {}
@@ -248,7 +258,7 @@ class ChooseJson:
 
             process_file = self.choose()
         else:
-            process_file = PersonalChatJsonPdf(self.directory_path)
+            process_file = PersonalChatJsonPdf(self.directory_path, self.path_save)
 
         process_file.make_pdf()
 
@@ -270,14 +280,23 @@ class ChooseJson:
         elif option not in list(self.menu):
             return self.choose()
         else:
-            return PersonalChatJsonPdf(self.menu[int(option)])
+            return PersonalChatJsonPdf(self.menu[int(option)], self.path_save)
 
 
 if __name__ == '__main__':
     os.system('clear')
-    argument = sys.argv
 
-    if len(argument) > 1:
-        ChooseJson(argument[1])
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-f', '--file', type=str)
+    parser.add_argument('-d', '--destination', type=str, )
+    args = parser.parse_args()
+
+    if args.file and args.destination:
+        ChooseJson(path=f'{args.file}', path_save=f'{args.destination}')
+    elif args.file and not args.destination:
+        ChooseJson(path=f'{args.file}')
+    elif args.destination and not args.file:
+        ChooseJson(path_save=f'{args.destination}')
     else:
         ChooseJson()
