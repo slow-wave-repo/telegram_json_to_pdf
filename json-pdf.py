@@ -207,7 +207,7 @@ class PersonalChatJsonPdf(JsonPdf):
             new_name = f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'
 
             os.rename(pdf_output_path, new_name)
-            shutil.move(self.input_file, f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{os.path.basename(self.input_file)}')
+            shutil.move(self.input_file, f'/home/{os.getlogin()}/Desktop/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.json')
             os.system(f'xdg-open "{new_name}"')
 
             os.system('clear')
