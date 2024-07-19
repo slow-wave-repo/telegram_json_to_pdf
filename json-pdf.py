@@ -52,7 +52,7 @@ class JsonPdf:
                                  textTransform='uppercase')
     period_style = ParagraphStyle(name='PeriodStyle',
                                   fontName='Font',
-                                  fontSize=10,
+                                  fontSize=12,
                                   alignment=TA_CENTER)
     date_style = ParagraphStyle(name='DateStyle',
                                 fontName='Font',
@@ -78,7 +78,6 @@ class JsonPdf:
     actor_style = ParagraphStyle(name='ActorStyle',
                                  fontName='Font',
                                  fontSize=13,
-                                 textTransform='uppercase',
                                  alignment=TA_CENTER,
                                  textColor='grey',
                                  spaceBefore=30,
@@ -86,6 +85,7 @@ class JsonPdf:
 
     actor_message_style = ParagraphStyle(name='ActorMessageStyle',
                                          fontName='Font',
+                                         alignment=TA_CENTER,
                                          fontSize=12,
                                          leading=15)
 
@@ -272,7 +272,7 @@ class PrivateGroupJsonPdf(JsonPdf):
 
             for message in self.input_file['messages']:
                 if self.format_date_inside(message['date']) != previous_date:
-                    story.append(Spacer(1, 48))
+                    story.append(Spacer(1, 40))
 
                     story.append(
                         HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
@@ -284,36 +284,29 @@ class PrivateGroupJsonPdf(JsonPdf):
                         HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
                                    spaceAfter=0.5 * cm, hAlign='CENTER'))
 
-                    story.append(Spacer(1, 30))
 
                     previous_date = self.format_date_inside(message['date'])
 
-                if 'actor' in list(message.keys()):
-                    if message['actor'] != previous_actor:
-                        story.append(Spacer(1, 20))
-                        story.append(self.style(self.check_message(message["actor"]), 'actor_style'))
-                        story.append(Spacer(1, 20))
-
-                        previous_actor = message['actor']
-
-                if 'from' in list(message.keys()):
-                    if message['from'] != previous_actor:
-                        story.append(Spacer(1, 20))
-                        story.append(self.style(self.check_message(message["from"]), 'actor_style'))
-                        story.append(Spacer(1, 20))
-
-                        previous_actor = message['from']
-
                 if message['type'] == 'service' and (message['action'] == 'invite_members' or message['action'] == 'create_group'):
                     invites_members = message['members']
-                    edited_invites_members = ','.join(invites_members)
-                    # print(self.check_message(edited_invites_members))
-                    story.append(self.style(f'(INVITES: {self.check_message(edited_invites_members)})', 'actor_message_style'))
+                    edited_invites_members = ','.upper().join(invites_members)
+                    story.append(self.style(self.check_message(f'{message["actor"].upper()} invited {edited_invites_members}'), 'actor_style'))
 
                 elif message['type'] == 'service' and message['action'] == 'join_group_by_link':
-                    story.append(self.style('(JOINED VIA LINK)', 'actor_message_style'))
+                    story.append(self.style(f'{message["actor"].upper()} joined', 'actor_style'))
 
-                elif message['type'] == 'message' and 'photo' in list(message):
+                elif 'actor' in list(message.keys()):
+                    if message['actor'] != previous_actor:
+                        story.append(self.style(self.check_message(message["actor"].upper()), 'actor_style'))
+                        previous_actor = message['actor']
+
+                else:
+                    if message['from'] != previous_actor:
+                        story.append(self.style(self.check_message(message["from"].upper()), 'actor_style'))
+                        previous_actor = message['from']
+
+
+                if message['type'] == 'message' and 'photo' in list(message):
                     story.append(self.style(self.check_message(f'(PHOTO) {message["text"]}'), 'actor_message_style'))
 
                 elif message['type'] == 'message' and 'video' in list(message):
