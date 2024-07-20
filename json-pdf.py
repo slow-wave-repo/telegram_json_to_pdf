@@ -305,20 +305,41 @@ class PrivateGroupJsonPdf(JsonPdf):
                         story.append(self.style(self.check_message(message["from"].upper()), 'actor_style'))
                         previous_actor = message['from']
 
+                # Message
 
-                if message['type'] == 'message' and 'photo' in list(message):
-                    story.append(self.style(self.check_message(f'(PHOTO) {message["text"]}'), 'actor_message_style'))
+                if message['type'] == 'message':
 
-                elif message['type'] == 'message' and 'video' in list(message):
-                    story.append(self.style(self.check_message(f'(VIDEO) {message["text"]}'), 'actor_message_style'))
+                    if 'photo' in list(message):
+                        story.append(self.style(self.check_message(f'(PHOTO) {message["text"]}'), 'actor_message_style'))
 
-                elif message['type'] == 'message' and 'audio' in list(message):
-                    story.append(self.style(self.check_message(f'(AUDIO) {message["text"]}'), 'actor_message_style'))
+                    elif 'video' in list(message):
+                        story.append(self.style(self.check_message(f'(VIDEO) {message["text"]}'), 'actor_message_style'))
 
-                elif message['type'] == 'message' and isinstance(message['text'], list):
-                    story.append(self.style(self.check_message(f'{message["text"][0]} {message["text"][1]}'), 'actor_message_style'))
-                else:
-                    story.append(self.style(self.check_message(message['text']), 'actor_message_style'))
+                    elif 'audio' in list(message):
+                        story.append(self.style(self.check_message(f'(AUDIO) {message["text"]}'), 'actor_message_style'))
+
+
+                    if isinstance(message['text'], list):
+                        message_result = ''
+
+                        for part in message['text']:
+                            if isinstance(part, dict) and part['type'] == 'mention':
+                                message_result += f'<a href="https://t.me/{part["text"][1:].lower()}" color=grey underline=True>{part["text"]}</a>'
+
+                            elif isinstance(part, dict) and part['type'] == 'link':
+                                message_result += f'<a href="{part["text"]}"  color=grey underline=True>{part["text"]}</a>'
+
+                            elif isinstance(part, dict):
+                                pass
+
+                            else:
+                                message_result += part
+
+                        story.append(self.style(self.check_message(message_result), 'actor_message_style'))
+
+
+                    else:
+                        story.append(self.style(self.check_message(message['text']), 'actor_message_style'))
 
 
 
