@@ -69,25 +69,34 @@ class JsonPdf:
                                         bold=True,
                                         fontSize=11,
                                         alignment=TA_RIGHT,
-                                        leading=15)
+                                        leading=15,
+                                        spaceBefore=25,
+                                        spaceAfter=25)
     partner_message_style = ParagraphStyle(name='PartnerMessageStyle',
                                            fontName='Font',
                                            fontSize=11,
                                            textColor='grey',
-                                           leading=15)
+                                           leading=15,
+                                           spaceBefore=25,
+                                           spaceAfter=25
+                                           )
     actor_style = ParagraphStyle(name='ActorStyle',
                                  fontName='Font',
                                  fontSize=13,
                                  alignment=TA_CENTER,
                                  textColor='grey',
-                                 spaceBefore=30,
-                                 spaceAfter=20)
+                                 spaceBefore=25,
+                                 spaceAfter=25
+                                 )
 
     actor_message_style = ParagraphStyle(name='ActorMessageStyle',
                                          fontName='Font',
                                          alignment=TA_CENTER,
                                          fontSize=12,
-                                         leading=15)
+                                         leading=15,
+                                         spaceBefore=25,
+                                         spaceAfter=25
+                                         )
 
     media_types = {
         'voice_message': '(VOICE MESSAGE)',
@@ -198,7 +207,7 @@ class PersonalChatJsonPdf(JsonPdf):
 
             for message in self.input_file['messages']:
                 if self.format_date_inside(message['date']) != previous_date:
-                    story.append(Spacer(1, 48))
+                    story.append(Spacer(1, 30))
 
                     story.append(
                         HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
@@ -210,22 +219,41 @@ class PersonalChatJsonPdf(JsonPdf):
                         HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
                                    spaceAfter=0.5 * cm, hAlign='CENTER'))
 
-                    story.append(Spacer(1, 30))
-
                     previous_date = self.format_date_inside(message['date'])
 
-                if message['type'] == 'service':
+                if message['type'] == 'service' and message['action'] == 'phone_call':
                     self.choose_role_tag(self.media_types['call'], message['actor'], story)
-                elif isinstance(message['text'], list):
-                    self.choose_role_tag(self.media_types['call'], message['from'], story)
-                else:
-                    self.choose_role_tag(self.check_message(message['text']), message['from'], story)
-                    story.append(Spacer(1, 20))
-                if 'media_type' in message:
+
+                if isinstance(message['text'], list):
+                    message_result = ''
+
+                    for part in message['text']:
+                        if isinstance(part, dict) and part['type'] == 'mention':
+                            message_result += f'<a href="https://t.me/{part["text"][1:].lower()}" color=grey underline=True>{part["text"]}</a>'
+
+                        elif isinstance(part, dict) and part['type'] == 'link':
+                            message_result += f'<a href="{part["text"]}" color=grey underline=True>{part["text"]}</a>'
+
+                        elif isinstance(part, dict) and part['type'] == 'text_link':
+                            message_result += f'<a href="{part["href"]}" color=grey underline=True>{part["text"]}</a>'
+
+                        elif isinstance(part, dict):
+                            pass
+
+                        else:
+                            message_result += part
+
                     try:
-                        self.choose_role_tag(self.media_types[message['media_type']], message['from'], story)
+                        self.choose_role_tag(self.check_message(message_result), message['from'], story)
                     except KeyError:
-                        self.choose_role_tag(self.media_types['other'], message['from'], story)
+                        self.choose_role_tag(self.check_message(message_result), message['actor'], story)
+
+                else:
+                    try:
+                        self.choose_role_tag(self.check_message(message['text']), message['from'], story)
+                    except KeyError:
+                        self.choose_role_tag(self.check_message(message['text']), message['actor'], story)
+
 
             doc.build(story)
 
@@ -271,8 +299,9 @@ class PrivateGroupJsonPdf(JsonPdf):
             story.append(self.style(f"{self.time_period_inside}", 'period'))
 
             for message in self.input_file['messages']:
+                # Date of message
                 if self.format_date_inside(message['date']) != previous_date:
-                    story.append(Spacer(1, 40))
+                    story.append(Spacer(1, 30))
 
                     story.append(
                         HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
@@ -287,6 +316,7 @@ class PrivateGroupJsonPdf(JsonPdf):
 
                     previous_date = self.format_date_inside(message['date'])
 
+                # If service message
                 if message['type'] == 'service' and (message['action'] == 'invite_members' or message['action'] == 'create_group'):
                     invites_members = message['members']
                     edited_invites_members = ','.upper().join(invites_members)
@@ -305,8 +335,7 @@ class PrivateGroupJsonPdf(JsonPdf):
                         story.append(self.style(self.check_message(message["from"].upper()), 'actor_style'))
                         previous_actor = message['from']
 
-                # Message
-
+                # Message body
                 if message['type'] == 'message':
 
                     if 'photo' in list(message):
