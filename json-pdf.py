@@ -327,7 +327,10 @@ class PrivateGroupJsonPdf(JsonPdf):
                                 message_result += f'<a href="https://t.me/{part["text"][1:].lower()}" color=grey underline=True>{part["text"]}</a>'
 
                             elif isinstance(part, dict) and part['type'] == 'link':
-                                message_result += f'<a href="{part["text"]}"  color=grey underline=True>{part["text"]}</a>'
+                                message_result += f'<a href="{part["text"]}" color=grey underline=True>{part["text"]}</a>'
+
+                            elif isinstance(part, dict) and part['type'] == 'text_link':
+                                message_result += f'<a href="{part["href"]}" color=grey underline=True>{part["text"]}</a>'
 
                             elif isinstance(part, dict):
                                 pass
