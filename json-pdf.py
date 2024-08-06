@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
 
 
+import argparse
 import glob
 import json
 import locale
 import os
 import shutil
-import sys
 from datetime import datetime
 from pathlib import Path
-import argparse
-
-import matplotlib.font_manager as fm
 
 import emoji
-from PIL import ImageFont
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
@@ -118,7 +114,6 @@ class JsonPdf:
         self.earliest_date, self.latest_date = self.get_time_borders(self.input_file)
         self.time_period_inside = f'{self.format_date_inside(self.earliest_date)} — {self.format_date_inside(self.latest_date)}'
         self.time_period_name = f'{self.format_date_name(self.earliest_date)} — {self.format_date_name(self.latest_date)}'
-
 
     def style(self, message: str, type: str) -> Paragraph:
         if type == 'text':
@@ -254,13 +249,13 @@ class PersonalChatJsonPdf(JsonPdf):
                     except KeyError:
                         self.choose_role_tag(self.check_message(message['text']), message['actor'], story)
 
-
             doc.build(story)
 
             new_name = f'{self.path_save}/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.pdf'
 
             os.rename(pdf_output_path, new_name)
-            shutil.copy(self.directory_path, f'{self.path_save}/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.json')
+            shutil.copy(self.directory_path,
+                        f'{self.path_save}/JSONtoPDF/{self.name}/{self.name}, {self.time_period_name}.json')
             os.system(f'xdg-open "{new_name}"')
 
             os.system('clear')
@@ -313,14 +308,16 @@ class PrivateGroupJsonPdf(JsonPdf):
                         HRFlowable(width="50%", thickness=1, lineCap='round', spaceBefore=0.3 * cm,
                                    spaceAfter=0.5 * cm, hAlign='CENTER'))
 
-
                     previous_date = self.format_date_inside(message['date'])
 
                 # If service message
-                if message['type'] == 'service' and (message['action'] == 'invite_members' or message['action'] == 'create_group'):
+                if message['type'] == 'service' and (
+                        message['action'] == 'invite_members' or message['action'] == 'create_group'):
                     invites_members = message['members']
                     edited_invites_members = ','.upper().join(invites_members)
-                    story.append(self.style(self.check_message(f'{message["actor"].upper()} invited {edited_invites_members}'), 'actor_style'))
+                    story.append(
+                        self.style(self.check_message(f'{message["actor"].upper()} invited {edited_invites_members}'),
+                                   'actor_style'))
 
                 elif message['type'] == 'service' and message['action'] == 'join_group_by_link':
                     story.append(self.style(f'{message["actor"].upper()} joined', 'actor_style'))
@@ -339,14 +336,16 @@ class PrivateGroupJsonPdf(JsonPdf):
                 if message['type'] == 'message':
 
                     if 'photo' in list(message):
-                        story.append(self.style(self.check_message(f'(PHOTO) {message["text"]}'), 'actor_message_style'))
+                        story.append(
+                            self.style(self.check_message(f'(PHOTO) {message["text"]}'), 'actor_message_style'))
 
                     elif 'video' in list(message):
-                        story.append(self.style(self.check_message(f'(VIDEO) {message["text"]}'), 'actor_message_style'))
+                        story.append(
+                            self.style(self.check_message(f'(VIDEO) {message["text"]}'), 'actor_message_style'))
 
                     elif 'audio' in list(message):
-                        story.append(self.style(self.check_message(f'(AUDIO) {message["text"]}'), 'actor_message_style'))
-
+                        story.append(
+                            self.style(self.check_message(f'(AUDIO) {message["text"]}'), 'actor_message_style'))
 
                     if isinstance(message['text'], list):
                         message_result = ''
@@ -372,9 +371,6 @@ class PrivateGroupJsonPdf(JsonPdf):
 
                     else:
                         story.append(self.style(self.check_message(message['text']), 'actor_message_style'))
-
-
-
 
             doc.build(story)
 
@@ -444,7 +440,6 @@ class ChooseJson:
             PrivateGroupJsonPdf(self.data, path, self.path_save).make_pdf()
         else:
             pass
-
 
     def choose(self):
         print()
